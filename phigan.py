@@ -12,6 +12,20 @@ torch.manual_seed(42)
 np.random.seed(42)
 
 
+def list_to_bins(_list):
+    """Takes list and returns positions as ranges"""
+    right = list(np.cumsum(_list))
+    left = [0] + list(right[:-1])
+    return [range(start, end) for start, end in zip(left, right)]
+
+
+def lol_to_bins(lol):
+    """Takes list of lists (lol) of categoricals and returns positions as ranges"""
+    right = list(np.cumsum([len(el) for el in lol]))
+    left = [0] + list(right[:-1])
+    return [range(start, end) for start, end in zip(left, right)]
+
+
 class TabularGenerator(nn.Module):
     def __init__(self, latent_dim, output_dim, hidden_dim=128):
         super(TabularGenerator, self).__init__()
@@ -56,85 +70,74 @@ class TabularGAN:
         self.discriminator = None
         self.scaler = None
         self.encoder = None
-        self.categorical_cols = None
         self.numerical_cols = None
+        self.ordinal_cols = None
+        self.categorical_cols = None
         self.encoded_categories = None
+        self.feature_indices = []
 
-    def preprocess_data(self, data, categorical_cols=None):
+
+    def preprocess_data(self, data, numerical_cols=None, ordinal_cols=None, categorical_cols=None):
         """Preprocesses the data by scaling numerical and encoding categorical features"""
+        if numerical_cols is None:
+            numerical_cols = []
+        if ordinal_cols is None:
+            ordinal_cols = []
         if categorical_cols is None:
             categorical_cols = []
 
         self.categorical_cols = categorical_cols
-        self.numerical_cols = [col for col in data.columns if col not in categorical_cols]
+        self.numerical_cols = numerical_cols
 
         # Process numerical features
         if self.numerical_cols:
             self.scaler = MinMaxScaler(feature_range=(-1, 1))
-            scaled_numerical = self.scaler.fit_transform(data[self.numerical_cols])
+            numerical_scaled = self.scaler.fit_transform(data[self.numerical_cols])
         else:
-            scaled_numerical = np.empty((len(data), 0))
+            numerical_scaled = np.empty((len(data), 0))
+        self.feature_indices.append(numerical_scaled.shape[1])
 
         # Process categorical features
         if self.categorical_cols:
             self.encoder = OneHotEncoder(sparse_output=False)
-            encoded_categorical = self.encoder.fit_transform(data[self.categorical_cols])
+            categorical_encoded = self.encoder.fit_transform(data[self.categorical_cols])
             self.encoded_categories = self.encoder.categories_
         else:
-            encoded_categorical = np.empty((len(data), 0))
+            categorical_encoded = np.empty((len(data), 0))
+        self.feature_indices.append(categorical_encoded.shape[1])
 
         # Combine features
-        processed_data = np.concatenate([scaled_numerical, encoded_categorical], axis=1)
+        processed_data = np.concatenate([numerical_scaled, categorical_encoded], axis=1)
+        self.feature_indices = list_to_bins(self.feature_indices)
         return processed_data.astype(np.float32)
-
-    @staticmethod
-    def lol_to_bins(lol):
-        """Takes list of lists (lol) of categoricals and returns positions as ranges"""
-        right = list(np.cumsum([len(el) for el in lol]))
-        left = [0] + list(right[:-1])
-        print(left, right)
-        return [range(start, end) for start, end in zip(left, right)]
 
     def postprocess_data(self, generated_data):
         """Converts generated data back to original format"""
-        if self.numerical_cols and self.categorical_cols:
-            num_numerical = len(self.numerical_cols)
-            numerical_data = generated_data[:, :num_numerical]
-            categorical_data = generated_data[:, num_numerical:]
+        df = pd.DataFrame()
+
+        if self.numerical_cols:
+            numerical_data = generated_data[:, self.feature_indices[0]]
 
             # Inverse transform numerical
             numerical_data = self.scaler.inverse_transform(numerical_data)
+            df = pd.concat([df, pd.DataFrame(numerical_data, columns=self.numerical_cols)])
 
-            # Create DataFrame
-            df = pd.DataFrame(numerical_data, columns=self.numerical_cols)
+        if self.categorical_cols:
+            categorical_data = generated_data[:, self.feature_indices[1]]
 
             # Inverse transform categorical
-            bins = self.lol_to_bins(self.encoded_categories)
+            bins = lol_to_bins(self.encoded_categories)
             for i, col in enumerate(self.categorical_cols):
                 maxes = np.argmax(categorical_data[:, bins[i]], axis=1)
                 categorical_data_inverse = [self.encoded_categories[i][j] for j in maxes]
                 df[col] = categorical_data_inverse
 
-        elif self.numerical_cols:
-            numerical_data = self.scaler.inverse_transform(generated_data)
-            df = pd.DataFrame(numerical_data, columns=self.numerical_cols)
-
-        else:
-            df = pd.DataFrame()
-
-            # Inverse transform categorical
-            bins = self.lol_to_bins(self.encoded_categories)
-            for i, col in enumerate(self.categorical_cols):
-                maxes = np.argmax(generated_data[:, bins[i]], axis=1)
-                categorical_data_inverse = [self.encoded_categories[i][j] for j in maxes]
-                df[col] = categorical_data_inverse
-
         return df
 
-    def train(self, data, categorical_cols=None, epochs=1000, batch_size=32, lr=0.0002):
+    def train(self, data, numerical_cols=None, ordinal_cols=None, categorical_cols=None, epochs=1000, batch_size=32, lr=0.0002):
         """Train the GAN on tabular data"""
         # Preprocess data
-        processed_data = self.preprocess_data(data, categorical_cols)
+        processed_data = self.preprocess_data(data, numerical_cols, ordinal_cols, categorical_cols)
         input_dim = processed_data.shape[1]
 
         # Initialize models
@@ -214,16 +217,38 @@ if __name__ == "__main__":
     size = 100
     data = pd.DataFrame({
         'age': np.random.normal(40, 15, size),
-        'income': np.random.lognormal(4, 0.5, size),
+        'income': np.random.lognormal(8, 0.5, size),
+        'nkids': np.random.randint(0, 12, size),
         'gender': np.random.choice(['M', 'F'], size),
-        'education': np.random.choice(['High School', 'College', 'Graduate'], size)
+        'education': np.random.choice(['None', 'GCSE', 'NVQ2+', 'Degree', 'Higher Degree', 'Apprenticeship', 'Space warrior', 'Wizard', 'Intergalactic trader', 'Chinchilla tickler'], size),
     })
 
     # Initialize and train GAN
+    cats = ['gender', 'education', 'nkids']
+    nums = [el for el in data.columns if el not in cats]
     gan = TabularGAN(latent_dim=64, hidden_dim=128)
-    gan.train(data, categorical_cols=['gender', 'education'], epochs=1000, batch_size=32)
+    gan.train(data, numerical_cols=nums, categorical_cols=cats, epochs=1000, batch_size=32)
 
     # Generate synthetic samples
-    synthetic_data = gan.generate_samples(10)
+    synthetic_data = gan.generate_samples(100)
     print("\nGenerated synthetic samples:")
     print(synthetic_data)
+
+    # Some basic statistics for validation
+    print('\n## Numericals, showing mean and std:')
+    nums = [col for col in synthetic_data.columns if col not in cats]
+    methods = {}
+    for num in nums:
+        real = (np.mean(data[num]), np.std(data[num]))
+        synth = (np.mean(synthetic_data[num]), np.std(synthetic_data[num]))
+        _all = pd.DataFrame([real, synth], columns=['Mean', 'STD']).T
+        _all.columns = [[num + '_real', num + '_synth']]
+        print('\n', num, _all)
+
+    print('\n## Categoricals and ordinals, showing normalised value counts:')
+    for cat in cats:
+        real = data[cat].value_counts(normalize=True).sort_index()
+        real.name = cat + '_real'
+        synth = synthetic_data[cat].value_counts(normalize=True).sort_index()
+        synth.name = cat + '_synth'
+        print('\n', pd.concat([real, synth], axis=1))
