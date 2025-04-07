@@ -1,6 +1,3 @@
-# HR 07/04/25 Toy GAN for training, testing and development
-# From here: https://ricci-colasanti.github.io/Synthetic-Population-Generation/GAN.html
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -80,7 +77,7 @@ class TabularGAN:
 
         # Process categorical features
         if self.categorical_cols:
-            self.encoder = OneHotEncoder(sparse=False)
+            self.encoder = OneHotEncoder(sparse_output=False)
             encoded_categorical = self.encoder.fit_transform(data[self.categorical_cols])
             self.encoded_categories = self.encoder.categories_
         else:
@@ -89,6 +86,14 @@ class TabularGAN:
         # Combine features
         processed_data = np.concatenate([scaled_numerical, encoded_categorical], axis=1)
         return processed_data.astype(np.float32)
+
+    @staticmethod
+    def lol_to_bins(lol):
+        """Takes list of lists (lol) of categoricals and returns positions as ranges"""
+        right = list(np.cumsum([len(el) for el in lol]))
+        left = [0] + list(right[:-1])
+        print(left, right)
+        return [range(start, end) for start, end in zip(left, right)]
 
     def postprocess_data(self, generated_data):
         """Converts generated data back to original format"""
@@ -100,24 +105,29 @@ class TabularGAN:
             # Inverse transform numerical
             numerical_data = self.scaler.inverse_transform(numerical_data)
 
-            # Inverse transform categorical
-            categorical_data = np.argmax(categorical_data, axis=1)
-            categorical_data = np.array([self.encoded_categories[i][idx]
-                                         for i, idx in enumerate(categorical_data.T)])
-
             # Create DataFrame
             df = pd.DataFrame(numerical_data, columns=self.numerical_cols)
+
+            # Inverse transform categorical
+            bins = self.lol_to_bins(self.encoded_categories)
             for i, col in enumerate(self.categorical_cols):
-                df[col] = categorical_data[i]
+                maxes = np.argmax(categorical_data[:, bins[i]], axis=1)
+                categorical_data_inverse = [self.encoded_categories[i][j] for j in maxes]
+                df[col] = categorical_data_inverse
 
         elif self.numerical_cols:
             numerical_data = self.scaler.inverse_transform(generated_data)
             df = pd.DataFrame(numerical_data, columns=self.numerical_cols)
+
         else:
-            categorical_data = np.argmax(generated_data, axis=1)
-            categorical_data = np.array([self.encoded_categories[i][idx]
-                                         for i, idx in enumerate(categorical_data.T)])
-            df = pd.DataFrame(categorical_data.T, columns=self.categorical_cols)
+            df = pd.DataFrame()
+
+            # Inverse transform categorical
+            bins = self.lol_to_bins(self.encoded_categories)
+            for i, col in enumerate(self.categorical_cols):
+                maxes = np.argmax(generated_data[:, bins[i]], axis=1)
+                categorical_data_inverse = [self.encoded_categories[i][j] for j in maxes]
+                df[col] = categorical_data_inverse
 
         return df
 
@@ -201,11 +211,12 @@ class TabularGAN:
 # Example usage
 if __name__ == "__main__":
     # Example with synthetic data
+    size = 100
     data = pd.DataFrame({
-        'age': np.random.normal(40, 15, 1000),
-        'income': np.random.lognormal(4, 0.5, 1000),
-        'gender': np.random.choice(['M', 'F'], 1000),
-        'education': np.random.choice(['High School', 'College', 'Graduate'], 1000)
+        'age': np.random.normal(40, 15, size),
+        'income': np.random.lognormal(4, 0.5, size),
+        'gender': np.random.choice(['M', 'F'], size),
+        'education': np.random.choice(['High School', 'College', 'Graduate'], size)
     })
 
     # Initialize and train GAN
