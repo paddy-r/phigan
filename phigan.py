@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, OrdinalEncoder
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 
@@ -69,6 +69,7 @@ class TabularGAN:
         self.generator = None
         self.discriminator = None
         self.scaler = None
+        self.ord = None
         self.encoder = None
         self.numerical_cols = None
         self.ordinal_cols = None
@@ -86,8 +87,9 @@ class TabularGAN:
         if categorical_cols is None:
             categorical_cols = []
 
-        self.categorical_cols = categorical_cols
         self.numerical_cols = numerical_cols
+        self.ordinal_cols = ordinal_cols
+        self.categorical_cols = categorical_cols
 
         # Process numerical features
         if self.numerical_cols:
@@ -96,6 +98,14 @@ class TabularGAN:
         else:
             numerical_scaled = np.empty((len(data), 0))
         self.feature_indices.append(numerical_scaled.shape[1])
+
+        # Process ordinal features
+        if self.ordinal_cols:
+            self.ord = OrdinalEncoder()
+            ordinal_encoded = self.ord.fit_transform(data[self.ordinal_cols])
+        else:
+            ordinal_encoded = np.empty((len(data), 0))
+        self.feature_indices.append(ordinal_encoded.shape[1])
 
         # Process categorical features
         if self.categorical_cols:
@@ -107,7 +117,7 @@ class TabularGAN:
         self.feature_indices.append(categorical_encoded.shape[1])
 
         # Combine features
-        processed_data = np.concatenate([numerical_scaled, categorical_encoded], axis=1)
+        processed_data = np.concatenate([numerical_scaled, ordinal_encoded, categorical_encoded], axis=1)
         self.feature_indices = list_to_bins(self.feature_indices)
         return processed_data.astype(np.float32)
 
@@ -120,10 +130,17 @@ class TabularGAN:
 
             # Inverse transform numerical
             numerical_data = self.scaler.inverse_transform(numerical_data)
-            df = pd.concat([df, pd.DataFrame(numerical_data, columns=self.numerical_cols)])
+            df = pd.concat([df, pd.DataFrame(numerical_data, columns=self.numerical_cols)], axis=1)
+
+        if self.ordinal_cols:
+            ordinal_data = generated_data[:, self.feature_indices[1]]
+
+            # Inverse transform ordinal
+            ordinal_data = self.ord.inverse_transform(ordinal_data)
+            df = pd.concat([df, pd.DataFrame(ordinal_data, columns=self.ordinal_cols)], axis=1)
 
         if self.categorical_cols:
-            categorical_data = generated_data[:, self.feature_indices[1]]
+            categorical_data = generated_data[:, self.feature_indices[2]]
 
             # Inverse transform categorical
             bins = lol_to_bins(self.encoded_categories)
@@ -224,10 +241,13 @@ if __name__ == "__main__":
     })
 
     # Initialize and train GAN
-    cats = ['gender', 'education', 'nkids']
-    nums = [el for el in data.columns if el not in cats]
+    # cats = ['gender', 'education', 'nkids']
+    cats = ['gender', 'education']
+    ords = ['nkids']
+    nums = [el for el in data.columns if el not in cats + ords]
     gan = TabularGAN(latent_dim=64, hidden_dim=128)
-    gan.train(data, numerical_cols=nums, categorical_cols=cats, epochs=1000, batch_size=32)
+    # gan.train(data, numerical_cols=nums, categorical_cols=cats, epochs=1000, batch_size=32)
+    gan.train(data, numerical_cols=nums, ordinal_cols=ords, categorical_cols=cats, epochs=1000, batch_size=32)
 
     # Generate synthetic samples
     synthetic_data = gan.generate_samples(100)
@@ -246,7 +266,7 @@ if __name__ == "__main__":
         print('\n', num, _all)
 
     print('\n## Categoricals and ordinals, showing normalised value counts:')
-    for cat in cats:
+    for cat in cats + ords:
         real = data[cat].value_counts(normalize=True).sort_index()
         real.name = cat + '_real'
         synth = synthetic_data[cat].value_counts(normalize=True).sort_index()
