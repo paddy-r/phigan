@@ -1,3 +1,6 @@
+# HR 08/04/25 Toy GAN for testing, training and development
+# Adapted from here: https://ricci-colasanti.github.io/Synthetic-Population-Generation/GAN.html
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -5,7 +8,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, OrdinalEncoder
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.model_selection import train_test_split
+import os
+from os.path import dirname as up
 
 # Set random seeds for reproducibility
 torch.manual_seed(42)
@@ -134,9 +138,11 @@ class TabularGAN:
 
         if self.ordinal_cols:
             ordinal_data = generated_data[:, self.feature_indices[1]]
+            print(ordinal_data)
 
             # Inverse transform ordinal
             ordinal_data = self.ord.inverse_transform(ordinal_data)
+            print(ordinal_data)
             df = pd.concat([df, pd.DataFrame(ordinal_data, columns=self.ordinal_cols)], axis=1)
 
         if self.categorical_cols:
@@ -213,8 +219,8 @@ class TabularGAN:
                 optimizer_G.step()
 
             # Print progress
-            if epoch % 100 == 0:
-                print(f"[Epoch {epoch}/{epochs}] D loss: {d_loss.item():.4f}, G loss: {g_loss.item():.4f}")
+            if epoch % 10 == 0:
+                print(f"[Epoch {epoch}/{epochs}] D loss: {d_loss.item():.4f}, G loss: {g_loss.item():.4f}", end='\r')
 
     def generate_samples(self, n_samples):
         """Generate synthetic samples"""
@@ -228,23 +234,34 @@ class TabularGAN:
         return self.postprocess_data(generated_data)
 
 
-# Example usage
 if __name__ == "__main__":
-    # Example with synthetic data
-    size = 100
-    data = pd.DataFrame({
-        'age': np.random.normal(40, 15, size),
-        'income': np.random.lognormal(8, 0.5, size),
-        'nkids': np.random.randint(0, 12, size),
-        'gender': np.random.choice(['M', 'F'], size),
-        'education': np.random.choice(['None', 'GCSE', 'NVQ2+', 'Degree', 'Higher Degree', 'Apprenticeship', 'Space warrior', 'Wizard', 'Intergalactic trader', 'Chinchilla tickler'], size),
-    })
+
+    # EXAMPLE 1: Random data
+    # size = 100
+    # data = pd.DataFrame({
+    #     'age': np.random.normal(40, 15, size),
+    #     'income': np.random.lognormal(8, 0.5, size),
+    #     'nkids': np.random.randint(0, 12, size),
+    #     'gender': np.random.choice(['M', 'F'], size),
+    #     'education': np.random.choice(['None', 'GCSE', 'NVQ2+', 'Degree', 'Higher Degree', 'Apprenticeship', 'Space warrior', 'Wizard', 'Intergalactic trader', 'Chinchilla tickler'], size),
+    # })
+    #
+    # cats = ['gender', 'education', 'nkids']
+    # ords = []
+    # # cats = ['gender', 'education']
+    # # ords = ['nkids']
+    # nums = [el for el in data.columns if el not in cats + ords]
+
+    # EXAMPLE 2: Minos fertility data, pared down
+    frac = 0.02
+    data = pd.read_csv(os.path.join(up(__file__), 'data', '2019_US_cohort.csv'))
+    data = data.sample(frac=1).reset_index(drop=True).sample(frac=frac).reset_index(drop=True)
+    print('Number of individuals:', len(data))
+    cats = ['sex', 'region', 'ethnicity', 'education_state', 'nkids_ind', 'nresp']
+    nums = ['age']
+    ords = []
 
     # Initialize and train GAN
-    # cats = ['gender', 'education', 'nkids']
-    cats = ['gender', 'education']
-    ords = ['nkids']
-    nums = [el for el in data.columns if el not in cats + ords]
     gan = TabularGAN(latent_dim=64, hidden_dim=128)
     # gan.train(data, numerical_cols=nums, categorical_cols=cats, epochs=1000, batch_size=32)
     gan.train(data, numerical_cols=nums, ordinal_cols=ords, categorical_cols=cats, epochs=1000, batch_size=32)
