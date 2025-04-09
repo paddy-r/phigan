@@ -1,0 +1,2 @@
+# HR 09/04/25 Constraints for SIPHER 2020 synthetic population, copied here for testing, initially with IPF algorithm
+# Part of "supplementary_material.zip" download from here: https://reshare.ukdataservice.ac.uk/856754/

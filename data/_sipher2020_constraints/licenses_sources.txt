@@ -1,0 +1,47 @@
+This folder contains all constraint files we have utilised when creating the 
+SIPHER Synthetic Population. In addition, we have provided all underlying 
+Rcode pipelines which we have used for creating these files. These files 
+provide information on how we accessed, scraped, and recoded online resources 
+such as NOMIS or NRS data.
+
+All files are subject to an OGL license 3.0 with © Crown Copyright.
+
+Link to OGL licebse 3.0: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+
+The exact sources for each constraint dimension are provided below:
+
+# age / sex 2011 (used as supplementary information only)
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?mode=construct&version=0&dataset=1414
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "LC1117SC.csv"
+
+# age / sex 2020 (main age / sex constraint)
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?mode=construct&version=0&dataset=2010
+Scotland: https://www.nrscotland.gov.uk/statistics-and-data/statistics/statistics-by-theme/population/population-estimates/small-area-population-estimates-2011-data-zone-based/time-series, file for year 2020: "sape-2020.xlsx"
+
+# economic activity 2011
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?reset=yes&mode=construct&dataset=818&version=0&anal=1&initsel=
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "LC6201SC.csv"
+
+# ethnicity 2011
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?reset=yes&mode=construct&dataset=818&version=0&anal=1&initsel=
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "LC6201SC.csv"
+
+# qualification 2011
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?reset=yes&mode=construct&dataset=554&version=0&anal=1&initsel=
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "QS501SC.csv"
+
+# marital status 2011
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?reset=yes&mode=construct&dataset=603&version=0&anal=1&initsel=
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "KS103SC.csv"
+
+# hh tenure 2011
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?reset=yes&mode=construct&dataset=1403&version=0&anal=1&initsel=
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "QS403SC.csv"
+
+# hh composition 2011
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?reset=yes&mode=construct&dataset=849&version=0&anal=1&initsel=
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "LC1109SC.csv"
+
+# general health 2011
+England & Wales: https://www.nomisweb.co.uk/query/construct/summary.asp?reset=yes&mode=construct&dataset=531&version=0&anal=1&initsel=
+Scotland: https://nrscensusprodumb.blob.core.windows.net/downloads/SNS%20Data%20Zone%202011%20blk.zip, file: "QS302SC.csv"
