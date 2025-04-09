@@ -11,6 +11,8 @@ from torch.utils.data import DataLoader, TensorDataset
 import os
 from os.path import dirname as up
 
+DATA_DIR = os.path.join(up(__file__), 'data')
+
 # Set random seeds for reproducibility
 torch.manual_seed(42)
 np.random.seed(42)
@@ -242,7 +244,7 @@ if __name__ == "__main__":
     #     'age': np.random.normal(40, 15, size),
     #     'income': np.random.lognormal(8, 0.5, size),
     #     'nkids': np.random.randint(0, 12, size),
-    #     'gender': np.random.choice(['M', 'F'], size),
+    #     'sex': np.random.choice(['M', 'F'], size),
     #     'education': np.random.choice(['None', 'GCSE', 'NVQ2+', 'Degree', 'Higher Degree', 'Apprenticeship', 'Space warrior', 'Wizard', 'Intergalactic trader', 'Chinchilla tickler'], size),
     # })
     #
@@ -253,39 +255,49 @@ if __name__ == "__main__":
     # nums = [el for el in data.columns if el not in cats + ords]
 
     # EXAMPLE 2: Minos fertility data, pared down
-    frac = 0.02
-    data = pd.read_csv(os.path.join(up(__file__), 'data', '2019_US_cohort.csv'))
-    data = data.sample(frac=1).reset_index(drop=True).sample(frac=frac).reset_index(drop=True)
+    frac = 0.001
+    data_raw = pd.read_csv(os.path.join(up(__file__), 'data', '2019_US_cohort.csv'))
+    data = data_raw.sample(frac=1).reset_index(drop=True).sample(frac=frac).reset_index(drop=True)
+    data['income'] = np.random.lognormal(8, 0.5, len(data))
     print('Number of individuals:', len(data))
-    cats = ['sex', 'region', 'ethnicity', 'education_state', 'nkids_ind', 'nresp']
-    nums = ['age']
+    cats = ['sex', 'region', 'ethnicity', 'education_state']
+    nums = ['age', 'income', 'nkids_ind', 'nresp']
     ords = []
 
     # Initialize and train GAN
     gan = TabularGAN(latent_dim=64, hidden_dim=128)
     # gan.train(data, numerical_cols=nums, categorical_cols=cats, epochs=1000, batch_size=32)
-    gan.train(data, numerical_cols=nums, ordinal_cols=ords, categorical_cols=cats, epochs=1000, batch_size=32)
+    gan.train(data, numerical_cols=nums, ordinal_cols=ords, categorical_cols=cats, epochs=100, batch_size=32)
 
-    # Generate synthetic samples
-    synthetic_data = gan.generate_samples(100)
-    print("\nGenerated synthetic samples:")
-    print(synthetic_data)
+    # Generate/cache populations for testing
+    for X in (3, 4, 5, 6):
+        print('Generating and caching population with 1e{} individuals...'.format(X))
 
-    # Some basic statistics for validation
-    print('\n## Numericals, showing mean and std:')
-    nums = [col for col in synthetic_data.columns if col not in cats]
-    methods = {}
-    for num in nums:
-        real = (np.mean(data[num]), np.std(data[num]))
-        synth = (np.mean(synthetic_data[num]), np.std(synthetic_data[num]))
-        _all = pd.DataFrame([real, synth], columns=['Mean', 'STD']).T
-        _all.columns = [[num + '_real', num + '_synth']]
-        print('\n', num, _all)
+        # Generate synthetic samples
+        synthetic_data = gan.generate_samples(10**int(X))
+        print("\nGenerated synthetic samples:")
+        print(synthetic_data)
 
-    print('\n## Categoricals and ordinals, showing normalised value counts:')
-    for cat in cats + ords:
-        real = data[cat].value_counts(normalize=True).sort_index()
-        real.name = cat + '_real'
-        synth = synthetic_data[cat].value_counts(normalize=True).sort_index()
-        synth.name = cat + '_synth'
-        print('\n', pd.concat([real, synth], axis=1))
+        # Some basic statistics for validation
+        print('\n## Numericals, showing mean and std:')
+        nums = [col for col in synthetic_data.columns if col not in cats]
+        methods = {}
+        for num in nums:
+            real = (np.mean(data[num]), np.std(data[num]))
+            synth = (np.mean(synthetic_data[num]), np.std(synthetic_data[num]))
+            _all = pd.DataFrame([real, synth], columns=['Mean', 'STD']).T
+            _all.columns = [[num + '_real', num + '_synth']]
+            print('\n', num, _all)
+
+        print('\n## Categoricals and ordinals, showing normalised value counts:')
+        for cat in cats + ords:
+            real = data[cat].value_counts(normalize=True).sort_index()
+            real.name = cat + '_real'
+            synth = synthetic_data[cat].value_counts(normalize=True).sort_index()
+            synth.name = cat + '_synth'
+            print('\n', pd.concat([real, synth], axis=1))
+
+        outpath = DATA_DIR
+        outfile = 'ganpop_1e' + str(X) + '.csv'
+        synthetic_data.to_csv(os.path.join(outpath, outfile))
+        print('Done!')
