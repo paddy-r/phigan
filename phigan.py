@@ -299,5 +299,5 @@ if __name__ == "__main__":
 
         outpath = DATA_DIR
         outfile = 'ganpop_1e' + str(X) + '.csv'
-        synthetic_data.to_csv(os.path.join(outpath, outfile))
+        synthetic_data.to_csv(os.path.join(outpath, outfile), index=False)
         print('Done!')
