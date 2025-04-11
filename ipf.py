@@ -30,6 +30,7 @@ ETH_GROUPS = {'White': ['WBI', 'WHO',],
               'Mixed': ['MIX',],
               'Other': ['OTH',],
               }
+DIST_KEYS = ('age_category', 'sex_category')
 
 
 # HR 18/12/24 To get ethnic supergroup map
@@ -70,6 +71,14 @@ def convert_agesex_constraint_data(data):
 def convert_simple_constraint_data(data):
     _categories = data.columns[~data.columns.isin('total')]
     return data[_categories]
+
+
+# HR 10/04/25 Get distribution of categorical data by
+def get_simple_distribution(data, _var, _keys=DIST_KEYS):
+    g = data.groupby(list(_keys))[_var].value_counts(normalize=True).reset_index()
+    g = g.pivot(columns=_keys, index=_var, values='proportion').fillna(0)  # fillna accounts for missing groups
+    g = g.to_dict()
+    return g
 
 
 def ipf(seed, row_targets, col_targets, max_iter=100, tol=1e-6):
@@ -141,3 +150,5 @@ if __name__ == "__main__":
                    }
 
     result = ipf(seed=contingency['table'], row_targets=target['row'], col_targets=target['col'])
+
+    eth_dist = get_simple_distribution(data=survey_data, _var='ethnicity_category')
