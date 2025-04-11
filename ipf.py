@@ -77,8 +77,7 @@ def convert_simple_constraint_data(data):
 def get_simple_distribution(data, _var, _keys=DIST_KEYS):
     g = data.groupby(list(_keys))[_var].value_counts(normalize=True).reset_index()
     g = g.pivot(columns=_keys, index=_var, values='proportion').fillna(0)  # fillna accounts for missing groups
-    g = g.to_dict()
-    return g
+    return g.to_dict()
 
 
 def ipf(seed, row_targets, col_targets, max_iter=100, tol=1e-6):
@@ -125,6 +124,48 @@ def ipf(seed, row_targets, col_targets, max_iter=100, tol=1e-6):
     return current
 
 
+def create_synthetic_population(ipf_counts, _dist):
+
+    for age_group in ipf_counts:
+        for sex in ipf_counts[age_group]:
+            count = ipf_counts[age_group][sex]
+            _age_group = np.array([age_group] * count)
+            _sex = np.array([sex] * count)
+
+            # Get probabilities for group
+            _lookup = _dist[(age_group, sex)]
+            _categories = list(_lookup.keys())
+            _probs = list(_lookup.values())
+
+            _cat = np.random.choice(_categories, size=count, p=_probs)
+
+    #         # Generate individuals for this group
+    #         for _ in range(int(count)):
+    #             # Select income based on probabilities
+    #             rand = random.random()
+    #             cumulative_prob = 0
+    #             income = income_levels[-1]  # default to last category
+    #
+    #             for i, prob in enumerate(probabilities):
+    #                 cumulative_prob += prob
+    #                 if rand <= cumulative_prob:
+    #                     income = income_levels[i]
+    #                     break
+    #
+    #             synthetic_pop.append({
+    #                 'sex': sex,
+    #                 'age_group': age_group,
+    #                 'ethnicity': ethnicity,
+    #             })
+    # return
+            _pop = np.stack([_age_group, _sex, _cat], axis=1)
+            try:
+                full_pop = np.concatenate([full_pop, _pop])
+            except:
+                full_pop = _pop
+    return full_pop
+
+
 if __name__ == "__main__":
 
     # Example 1: Fake survey data from GAN
@@ -134,14 +175,20 @@ if __name__ == "__main__":
     survey_data['age_category'] = survey_data['age'].round().astype(int).map(get_age_category_map())  # Add age category to match constraint
     survey_data['ethnicity_category'] = survey_data['ethnicity'].map(get_ethnicity_category_map())  # Add ethnicity category to match constraint
 
-    target_agesex = convert_agesex_constraint_data(get_constraint_data('age-sex'))
+    # Master keys
+    target_agesex = convert_agesex_constraint_data(get_constraint_data('age-sex')) * 100
+
+    # Other non-key variables
     target_ethnicity = get_constraint_data('ethnicity')
+    eth_dist = get_simple_distribution(data=survey_data, _var='ethnicity_category')
 
     # Example IPF operation
-    area = 'E01000010'
+    area = 'E01000001'
     target_raw = target_agesex.loc[[area]].drop(columns=['total']).T.reset_index()
-    target = {'row': target_raw.groupby('level_1')[area].sum().to_dict(),
+    target = {'table': target_raw.groupby(['level_1', 'level_0']).sum().unstack()[area].to_dict(orient='index'),
+              'row': target_raw.groupby('level_1')[area].sum().to_dict(),
               'col': target_raw.groupby('level_0')[area].sum().to_dict(),
+              'grand_total': target_raw[area].sum(),
               }
     contingency = {'table': survey_data.groupby(['age_category', 'sex_category']).size().unstack().to_dict(orient='index'),
                    'row_totals': survey_data.groupby(['age_category']).size().to_dict(),
@@ -151,4 +198,6 @@ if __name__ == "__main__":
 
     result = ipf(seed=contingency['table'], row_targets=target['row'], col_targets=target['col'])
 
-    eth_dist = get_simple_distribution(data=survey_data, _var='ethnicity_category')
+    synthpop = create_synthetic_population(target['table'], eth_dist)
+    df = pd.DataFrame(synthpop)
+    df.columns = list(DIST_KEYS) + ['ethnicity_category']
