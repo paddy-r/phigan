@@ -3,3 +3,8 @@
 
 # Population data
 data/ganpop*
+
+# All R stuff
+.Rproj.user
+*.Rproj
+*/*.Rproj
