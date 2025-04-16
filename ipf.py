@@ -58,7 +58,7 @@ def get_age_category_map():
 # HR 09/04/25 Get SIPHER synthpop constraint data
 def get_constraint_data(constraint):
     _file = constraint_dict[constraint]
-    return pd.read_csv(os.path.join(constraint_dir, _file)).set_index(LSOA_COL)
+    return pd.read_csv(os.path.join(constraint_dir, _file)).set_index(LSOA_COL).drop(columns=['total'])
 
 
 # HR 09/04/25 Convert constraint data to "row"/"col" dictionary form for IPF
@@ -175,16 +175,16 @@ if __name__ == "__main__":
     survey_data['age_category'] = survey_data['age'].round().astype(int).map(get_age_category_map())  # Add age category to match constraint
     survey_data['ethnicity_category'] = survey_data['ethnicity'].map(get_ethnicity_category_map())  # Add ethnicity category to match constraint
 
-    # Master keys
+    # Variables to be included in IPF procedure
     target_agesex = convert_agesex_constraint_data(get_constraint_data('age-sex')) * 100
+    # target_ethnicity = get_constraint_data('ethnicity')
 
-    # Other non-key variables
-    target_ethnicity = get_constraint_data('ethnicity')
+    # Other non-key variables - to be added after synthpop generation using survey_data distributions
     eth_dist = get_simple_distribution(data=survey_data, _var='ethnicity_category')
 
     # Example IPF operation
     area = 'E01000001'
-    target_raw = target_agesex.loc[[area]].drop(columns=['total']).T.reset_index()
+    target_raw = target_agesex.loc[[area]].T.reset_index()
     target = {'table': target_raw.groupby(['level_1', 'level_0']).sum().unstack()[area].to_dict(orient='index'),
               'row': target_raw.groupby('level_1')[area].sum().to_dict(),
               'col': target_raw.groupby('level_0')[area].sum().to_dict(),
@@ -201,3 +201,20 @@ if __name__ == "__main__":
     synthpop = create_synthetic_population(target['table'], eth_dist)
     df = pd.DataFrame(synthpop)
     df.columns = list(DIST_KEYS) + ['ethnicity_category']
+
+
+    # Create standardised SIPHER 2020 constraints data
+    targets = {}
+    agesex = get_constraint_data('age-sex')
+    targets['age'] = agesex.T.groupby(['_'.join(s.split('_')[1:]) for s in agesex.T.index.values]).sum().T
+    targets['sex'] = agesex.T.groupby([s.split('_')[0] for s in agesex.T.index.values]).sum().T
+    for t in ('age-sex', 'economic', 'ethnicity', 'general_health', 'hh_composition', 'hh_tenure', 'marital', 'qualification'):
+        targets[t] = get_constraint_data(t)
+
+    outpath = os.path.join(constraint_dir, 'constraints_standardised')
+    for target, data in targets.items():
+        outfile = target + '.csv'
+        outfull = os.path.join(outpath, outfile)
+        if not os.path.exists(outpath):
+            os.makedirs(outpath)
+        data.to_csv(outfull)
