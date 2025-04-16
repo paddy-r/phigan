@@ -24,7 +24,7 @@ def trs(x):
     xv = x.reshape(-1)  # Flatten to 1D array to work on matrices of arbitrary dimensions
     xint = np.floor(xv)  # Integer part
     r = xv - xint  # Decimal part
-    deficit = round(r.sum())  # Deficit population
+    deficit = round(r.sum())  # Deficit population; n.b. both Numpy and R "round to even", i.e. 0.5 -> 0, 1.5 -> 2
     topup = np.random.choice(len(xv), size=deficit, p=r/r.sum(), replace=False)  # Must NOT allow replacement, as in R
     xint[topup] += 1
     xint = xint.reshape(x.shape)  # Reshape to original dimensions
