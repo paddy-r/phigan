@@ -23,6 +23,7 @@ constraint_dict = {'age-sex': '2020_est_age_sex.csv',
 LSOA_COL = 'areacode'
 SEX_CATEGORIES = ('m', 'f')
 AGE_CATEGORIES = ('16_24', '25_34', '35_49', '50_64', '65_74', '75p')
+AGE_EDGES = (16, 25, 35, 50, 65, 75, 101)  # Easier than calculating them automatically
 
 ETH_GROUPS = {'White': ['WBI', 'WHO',],
               'Black': ['BLA', 'BLC', 'OBL',],
@@ -44,7 +45,7 @@ def get_ethnicity_category_map():
 
 def get_age_intervals():
     age_intervals = [(int(start), int(end) + 1) for start, end in (age_range.split('_') for age_range in AGE_CATEGORIES[:-1])]
-    age_intervals += ((75, 200),)
+    age_intervals += ((75, 101),)
     return age_intervals
 
 
@@ -138,26 +139,6 @@ def create_synthetic_population(ipf_counts, _dist):
             _probs = list(_lookup.values())
 
             _cat = np.random.choice(_categories, size=count, p=_probs)
-
-    #         # Generate individuals for this group
-    #         for _ in range(int(count)):
-    #             # Select income based on probabilities
-    #             rand = random.random()
-    #             cumulative_prob = 0
-    #             income = income_levels[-1]  # default to last category
-    #
-    #             for i, prob in enumerate(probabilities):
-    #                 cumulative_prob += prob
-    #                 if rand <= cumulative_prob:
-    #                     income = income_levels[i]
-    #                     break
-    #
-    #             synthetic_pop.append({
-    #                 'sex': sex,
-    #                 'age_group': age_group,
-    #                 'ethnicity': ethnicity,
-    #             })
-    # return
             _pop = np.stack([_age_group, _sex, _cat], axis=1)
             try:
                 full_pop = np.concatenate([full_pop, _pop])
@@ -170,13 +151,17 @@ if __name__ == "__main__":
 
     # Example 1: Fake survey data from GAN
     X = 5  # Exponent for number of synthetic individuals to generate
-    survey_data = pd.read_csv(os.path.join(DATA_DIR, 'ganpop_1e' + str(X) + '.csv'))
+    # survey_data = pd.read_csv(os.path.join(DATA_DIR, 'ganpop_1e' + str(X) + '.csv'))
+
+    # Example 2: SIPHER synthpop (2020)
+    survey_data = pd.read_csv(os.path.join(DATA_DIR, '2019_US_cohort.csv'))  # Basic Minos synthpop
+
     survey_data['sex_category'] = survey_data['sex'].astype(str).str.lower().str[0]  # Add sex category to match constraint
     survey_data['age_category'] = survey_data['age'].round().astype(int).map(get_age_category_map())  # Add age category to match constraint
     survey_data['ethnicity_category'] = survey_data['ethnicity'].map(get_ethnicity_category_map())  # Add ethnicity category to match constraint
 
     # Variables to be included in IPF procedure
-    target_agesex = convert_agesex_constraint_data(get_constraint_data('age-sex')) * 100
+    target_agesex = convert_agesex_constraint_data(get_constraint_data('age-sex'))
     # target_ethnicity = get_constraint_data('ethnicity')
 
     # Other non-key variables - to be added after synthpop generation using survey_data distributions
@@ -190,7 +175,8 @@ if __name__ == "__main__":
               'col': target_raw.groupby('level_0')[area].sum().to_dict(),
               'grand_total': target_raw[area].sum(),
               }
-    contingency = {'table': survey_data.groupby(['age_category', 'sex_category']).size().unstack().to_dict(orient='index'),
+
+    contingency = {'table': pd.crosstab(survey_data['age_category'], survey_data['sex_category']).to_dict(orient='index'),
                    'row_totals': survey_data.groupby(['age_category']).size().to_dict(),
                    'col_totals': survey_data.groupby(['sex_category']).size().to_dict(),
                    'grand_total': len(survey_data),
@@ -203,18 +189,18 @@ if __name__ == "__main__":
     df.columns = list(DIST_KEYS) + ['ethnicity_category']
 
 
-    # Create standardised SIPHER 2020 constraints data
-    targets = {}
-    agesex = get_constraint_data('age-sex')
-    targets['age'] = agesex.T.groupby(['_'.join(s.split('_')[1:]) for s in agesex.T.index.values]).sum().T
-    targets['sex'] = agesex.T.groupby([s.split('_')[0] for s in agesex.T.index.values]).sum().T
-    for t in ('age-sex', 'economic', 'ethnicity', 'general_health', 'hh_composition', 'hh_tenure', 'marital', 'qualification'):
-        targets[t] = get_constraint_data(t)
-
-    outpath = os.path.join(constraint_dir, 'constraints_standardised')
-    for target, data in targets.items():
-        outfile = target + '.csv'
-        outfull = os.path.join(outpath, outfile)
-        if not os.path.exists(outpath):
-            os.makedirs(outpath)
-        data.to_csv(outfull)
+    # # Create standardised SIPHER 2020 constraints data
+    # targets = {}
+    # agesex = get_constraint_data('age-sex')
+    # targets['age'] = agesex.T.groupby(['_'.join(s.split('_')[1:]) for s in agesex.T.index.values]).sum().T
+    # targets['sex'] = agesex.T.groupby([s.split('_')[0] for s in agesex.T.index.values]).sum().T
+    # for t in ('age-sex', 'economic', 'ethnicity', 'general_health', 'hh_composition', 'hh_tenure', 'marital', 'qualification'):
+    #     targets[t] = get_constraint_data(t)
+    #
+    # outpath = os.path.join(constraint_dir, 'constraints_standardised')
+    # for target, data in targets.items():
+    #     outfile = target + '.csv'
+    #     outfull = os.path.join(outpath, outfile)
+    #     if not os.path.exists(outpath):
+    #         os.makedirs(outpath)
+    #     data.to_csv(outfull)
