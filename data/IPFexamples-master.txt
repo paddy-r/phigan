@@ -1,0 +1,2 @@
+# HR 13/04/25 Examples from Nik's paper on IPF, DOI: https://doi.org/10.1080/00330124.2015.1099449
+# Downloaded from here: https://github.com/niklomax/IPFexamples
