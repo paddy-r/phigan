@@ -16,16 +16,10 @@ int_trs <- function(x){
   # For generalisation purpose, x becomes a vector
   xv <- as.vector(x) # allows trs to work on matrices
   xint <- floor(xv) # integer part of the weight
-  print(xv)
   r <- xv - xint # decimal part of the weight
-  print('r')
-  print(r)
   def <- round(sum(r)) # the deficit population
-  print(def)
-  # the weights be 'topped up' (+ 1 applied)
+  # the weights to be 'topped up' (+ 1 applied)
   topup <- sample(length(x), size = def, prob = r)
-  print('topup:')
-  print(topup)
   xint[topup] <- xint[topup] + 1
   dim(xint) <- dim(x)
   dimnames(xint) <- dimnames(x)
