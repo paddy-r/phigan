@@ -1,5 +1,5 @@
 # HR 15/04/25 Python version of R function int_trs
-# Integerises list of non-integers according to "truncate, repicate, sample" logic
+# Integerises list of non-integers according to "truncate, replicate, sample" logic
 # Paper is here: https://www.sciencedirect.com/science/article/pii/S0198971513000240
 # R version (with examples) is here: https://spatial-microsim-book.robinlovelace.net/smsimr#sintegerisation
 
@@ -18,6 +18,7 @@
 # }
 
 import numpy as np
+
 
 # HR 16/04/25 TRS algorithm, direct adaptation of R version (int_trs)
 def trs(x):
