@@ -2,7 +2,7 @@ library(mipfp)
 
 # HR 23/07/25 Adapted version of Python IPFN example in readme, for 2D constraints
 # See here: https://github.com/Dirguis/ipfn
-# My issue here: https://github.com/Dirguis/ipfn/issues/31
+# Adapted from example here: https://github.com/Dirguis/ipfn/issues/25
 seed <- array(1, c(2, 4, 3))
 
 xijp <- array(c(c(9, 17, 19, 7), c(11, 13, 16, 8)), c(4, 2))  # xy, 2x4
