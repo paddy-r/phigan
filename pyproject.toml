@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synthpop_sandbox"
+version = "0.0.1"
+description = "Tools for synthetic population creation"
+readme = "README.md"
+authors = [
+    {name = "Hugh P. Rice", email = "h.p.rice@leeds.ac.uk"},
+    {name = "Ricardo Colasanti", email = "r.l.colasanti@leeds.ac.uk"},
+    {name = "Andreas Hoehn", email = "andreas.hoehn@glasgow.ac.uk"},
+]
+requires-python = ">=3.11.0"
+dependencies = [
+    'pandas',
+    'scikit-learn',
+#    'torch',
+#    'torchvision',
+#    'torchaudio',
+    'sdv',
+    'ipfn',
+    'pyipf',
+]
