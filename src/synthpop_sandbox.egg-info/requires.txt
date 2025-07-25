@@ -1,0 +1,8 @@
+pandas
+scikit-learn
+torch
+torchvision
+torchaudio
+sdv
+ipfn
+pyipf
