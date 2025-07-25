@@ -8,3 +8,8 @@ data/ganpop*
 .Rproj.user
 *.Rproj
 */*.Rproj
+
+# All installation files
+src/*egg-info/
+src/*egg-info/*
+
