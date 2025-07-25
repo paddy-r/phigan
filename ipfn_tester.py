@@ -4,10 +4,10 @@ import itertools
 import numpy as np
 import pandas as pd
 from ipfn import ipfn
-import ipf
+import ipf_scratch
 import trs
 
-DATA_DIR = ipf.DATA_DIR
+DATA_DIR = ipf_scratch.DATA_DIR
 
 # Example from IPFN Github readme
 # Copied from here: https://github.com/Dirguis/ipfn
@@ -68,8 +68,8 @@ if __name__ == "__main__":
     # survey_data = pd.read_csv(os.path.join(DATA_DIR, 'ganpop_1e5.csv'))  # GAN 1e6 synthpop, generated from Minos synthpop above
 
     survey_data['sex_category'] = survey_data['sex'].astype(str).str.lower().str[0]  # Add sex category to match constraint
-    survey_data['age_category'] = survey_data['age'].round().astype(int).map(ipf.get_age_category_map())  # Add age category to match constraint
-    survey_data['ethnicity_category'] = survey_data['ethnicity'].map(ipf.get_ethnicity_category_map()).str.lower()  # Add ethnicity category to match constraint
+    survey_data['age_category'] = survey_data['age'].round().astype(int).map(ipf_scratch.get_age_category_map())  # Add age category to match constraint
+    survey_data['ethnicity_category'] = survey_data['ethnicity'].map(ipf_scratch.get_ethnicity_category_map()).str.lower()  # Add ethnicity category to match constraint
     survey_data['agesex_category'] = survey_data['sex_category'] + '_' + survey_data['age_category']  # Combine into single agesex column to match constraint
 
     # Testing - want to reproduce results from R MIPFP code in ipf.R using SIPHER synthpop 2020 constraints
@@ -78,11 +78,11 @@ if __name__ == "__main__":
     # More testing - loop over N LSOAs and get timings...
     constraint_ref = 'age-sex'
     N = 10
-    lsoas = ipf.get_constraint_data(constraint_ref).index[:N].to_list()  # Get first N LSOAs from (e.g.) age-sex constraint file
+    lsoas = ipf_scratch.get_constraint_data(constraint_ref).index[:N].to_list()  # Get first N LSOAs from (e.g.) age-sex constraint file
 
-    constraint_vars = list(ipf.constraint_dict.keys())
+    constraint_vars = list(ipf_scratch.constraint_dict.keys())
     # constraint_vars = [list(ipf.constraint_dict.keys())[el] for el in [0, 2]]  # Select particular variables
-    constraint_data = {c: ipf.get_constraint_data(c) for c in constraint_vars}
+    constraint_data = {c: ipf_scratch.get_constraint_data(c) for c in constraint_vars}
 
     # Get seed - same for all LSOAs here, although can calculate for each
     dims = [v.shape[1] for v in constraint_data.values()]
@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
 
     # HR 29/04/25 Four cases to look at effect of seed data - any LSOA will do
-    agesex_raw = ipf.convert_agesex_constraint_data(ipf.get_constraint_data('age-sex')).loc[area].unstack()
+    agesex_raw = ipf_scratch.convert_agesex_constraint_data(ipf_scratch.get_constraint_data('age-sex')).loc[area].unstack()
     agesex_con = agesex_raw.to_numpy()
 
     age_cats = agesex_raw.columns

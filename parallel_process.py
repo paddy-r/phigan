@@ -9,9 +9,9 @@ import multiprocessing as mp
 import multiprocessing.shared_memory as shm
 import uuid
 import time
-import ipf
+import ipf_scratch
 
-DATA_DIR = ipf.DATA_DIR
+DATA_DIR = ipf_scratch.DATA_DIR
 
 # Create a large dataset
 # global large_dataset

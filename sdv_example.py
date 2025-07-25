@@ -2,7 +2,7 @@
 
 import os
 import pandas as pd
-import ipf
+import ipf_scratch
 
 from sdv.single_table import GaussianCopulaSynthesizer
 from sdv.single_table import CTGANSynthesizer
@@ -12,7 +12,7 @@ from sdv.evaluation.single_table import get_column_plot
 # from sdv.evaluation.multi_table import run_diagnostic, evaluate_quality
 # from sdv.evaluation.multi_table import get_column_plot
 
-DATA_DIR = ipf.DATA_DIR
+DATA_DIR = ipf_scratch.DATA_DIR
 
 
 # data = pd.read_csv('my_data_file.csv')
