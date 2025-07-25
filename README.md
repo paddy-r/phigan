@@ -15,3 +15,4 @@ Developed for use within the [PHI-UK research consortium](https://www.phiuk.org/
 Development team:
 - Hugh P. Rice (lead), h.p.rice@leeds.ac.uk
 - Ric Colasanti, r.l.colasanti@leeds.ac.uk
+- Andreas Hoehn, andreas.hoehn@glasgow.ac.uk
