@@ -16,3 +16,18 @@ Development team:
 - Hugh P. Rice (lead), h.p.rice@leeds.ac.uk
 - Ric Colasanti, r.l.colasanti@leeds.ac.uk
 - Andreas Hoehn, andreas.hoehn@glasgow.ac.uk
+
+You can install the package in many ways.
+
+1. Clone the repository using Git, then install it (in development mode, so you can make changes on the fly), like this:
+
+```
+pip install -e git+https://github.com/paddy-r/synthpop_sandbox#egg=synthpop_sandbox
+```
+
+3. Add it to your Anaconda/Miniconda environment file in the `pip` section (also in development mode) like this:
+
+``` 
+pip:
+    - -e git+https://github.com/paddy-r/synthpop_sandbox#egg=synthpop_sandbox
+```
