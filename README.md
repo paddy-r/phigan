@@ -13,24 +13,29 @@ Our aim is to produce a set of reproducible examples to showcase the various met
 
 Developed for use within the [PHI-UK research consortium](https://www.phiuk.org/), "Innovating with people, places and communities".
 
-Development team:
+Contact the development team below with queries, or raise an issue here.
 - Hugh P. Rice (lead), h.p.rice@leeds.ac.uk
 - Ric Colasanti, r.l.colasanti@leeds.ac.uk
 - Andreas Hoehn, andreas.hoehn@glasgow.ac.uk
 
 You can install the package in multiple ways.
 
-1. Clone the repository using Git, then install it as below. Optionally, if you'd like to make changes on the fly, install in development mode (see second installaion command).
+1. The simplest way is to install via `pip`.
 
 ```
-git clone https://github.com/paddy-r/synthpop_sandbox.git
-pip install .
-pip install -e .  # Optional
+pip install git+https://github.com/paddy-r/synthpop_sandbox.git
 ```
 
-2. Add it to your Anaconda/Miniconda environment file in the `pip` section like this:
+2. Alternatively, add Synthpop Sandbox to your Anaconda/Miniconda/Micromamba environment file in the `pip` section.
 
 ``` 
 pip:
     - git+https://github.com/paddy-r/synthpop_sandbox#egg=synthpop_sandbox
+```
+
+3. If you'd like to contribute to the development of Synthpop Sandbox, clone the repository using Git, then install it in development mode.
+
+```
+git clone https://github.com/paddy-r/synthpop_sandbox.git
+pip install -e .
 ```
